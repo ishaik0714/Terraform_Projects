@@ -4,13 +4,6 @@ provider "aws" {
   secret_key  = "2kozRHKYfTsRS2HlHYI+t389zbQZbHaKIFp0QjcP"
 }
 
-variable "myvpc_cidr_block" {}
-variable "mysubnet_cidr_block" {}
-variable avail_zone {}
-variable env_prefix {}
-variable my_ip {}
-
-variable instance_type {}
 resource "aws_vpc" "myproj-vpc" {
   cidr_block = var.myvpc_cidr_block
   tags = {
@@ -25,10 +18,6 @@ resource "aws_subnet" "myproj-subnet-a" {
   tags = {
     Name = "myproj-subnet-a"
   }
-}
-
-output "myproj-vpc-id" {
-  value = aws_vpc.myproj-vpc.id
 }
 
 resource "aws_default_route_table" "myproj-main-route-table" {
@@ -86,18 +75,14 @@ data "aws_ami" "latest-amazon-linux-image" {
   }
 }
 
-output "aws_ami_id" {
-  value = data.aws_ami.latest-amazon-linux-image
-}
-
-resource "aws_instance" "myproj-nginx-serv" {
-  ami = data.aws_ami.latest-amazon-linux-image.image_id
-  instance_type = var.instance_type
-  subnet_id = aws_subnet.myproj-subnet-a.id
-  vpc_security_group_ids = [aws_security_group.myproj-sg.id]
-  availability_zone = var.avail_zone
-  associate_public_ip_address = true
-  key_name = "ec2-keypair"
+# resource "aws_instance" "myproj-nginx-serv" {
+#   ami = data.aws_ami.latest-amazon-linux-image.image_id
+#   instance_type = var.instance_type
+#   subnet_id = aws_subnet.myproj-subnet-a.id
+#   vpc_security_group_ids = [aws_security_group.myproj-sg.id]
+#   availability_zone = var.avail_zone
+#   associate_public_ip_address = true
+#   key_name = "ec2-keypair"
   
   # user_data = <<EOF
   #                 #!/bin/bash
@@ -107,13 +92,46 @@ resource "aws_instance" "myproj-nginx-serv" {
   #                 sudo usermod -aG docker ec2-user
   #                 docker run -p 8080:80 nginx
   #             EOF
+  #   user_data = file("bootstrap_script.sh")
 
-  user_data = file("bootstrap_script.sh")
-  
-  tags = {
-    Name = "myproj-nginx-serv"
-  }
-}
+#   tags = {
+#     Name = "myproj-nginx-serv"
+#   }
+# }
+
+#----------------------------------------------------------------
+# Connecting EC2 instance from Terraform using private key
+# connection {
+#   type = "ssh"
+#   host = self.public_ip
+#   user = "ec2-user"
+#   private_key = file(var.private_key_location)
+# }
+
+## ---------------------------------------------------------------- ##
+# Three provisioners available - File, Remote Exec and Local Exec
+
+# To copy files from local machine to remote EC2 instance using Terraform
+# provisioner "file" {
+#   source = "bootstrap_script.sh"
+#   destination = "/home/ec2-user/bootstrap_script.sh"
+# }
+
+# To run bootstrap script or any commands on remote EC2 instance from Terraform
+# provisioner "remote-exec" {
+#   script = file("bootstrap_script.sh")
+#   inline = [
+#     "mkdir new_dir",
+#     "cd new_dir"
+#   ]
+# }
+
+# To run commands on local machine using Terraform
+# provisioner "local-exec" {
+#   command = "dir  > output.txt"
+#   command = "echo ${self.public_ip}  > ip_output.txt"
+# }
+    
 
 # resource "aws_route_table" "myproj-vpc-route-table" {
 #   vpc_id = aws_vpc.myproj-vpc.id
